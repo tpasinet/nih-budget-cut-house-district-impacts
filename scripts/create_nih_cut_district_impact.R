@@ -2,6 +2,7 @@
 library(tidyverse)
 library(rvest)
 library(DT)
+library(htmltools)
 library(htmlwidgets)
 
 # 1 Get US House 2024 Election Results ----
@@ -11,7 +12,7 @@ us_house_election_results_2024 <- "https://en.wikipedia.org/wiki/2024_United_Sta
   html_table() |>
   # This is a brutish hack in the interest of time. The state result tables were identified manually.
   (\(.) .[18:67])() |>
-  map(~ .x |> select(1, last_col()) |> rename_with(.cols = 2, ~ "Candidates")) |>
+  map( ~ .x |> select(1, last_col()) |> rename_with(.cols = 2, ~ "Candidates")) |>
   bind_rows() |>
   filter(District != "Location") |>
   mutate(
@@ -72,13 +73,11 @@ combined_data <- us_house_election_results_2024 |>
     budg_NIH_cuts_econ_loss,
     budg_NIH_cuts_job_loss
   )
-  
-# 5 Create Interactive Table of District Impacts ----
-combined_data |> 
-  filter(
-    party == "Republican" 
-    & vote_pct < 0.52
-  ) |> 
+
+# 5 Create Table of Vote Opportunities ----
+combined_data |>
+  filter(party == "Republican"
+         & vote_pct < 0.52) |>
   select(
     state,
     district,
@@ -87,8 +86,12 @@ combined_data |>
     vote_pct,
     budg_NIH_cuts_econ_loss,
     budg_NIH_cuts_job_loss
-  ) |> 
+  ) |>
   datatable(
+    caption = tags$caption(
+      style = "caption-side: top; text-align: left; color: black; font-size: 150%;",
+      "Republican House Members Who Won Close 2024 Races Sorted by FY26 NIH Budget Cut Impact"
+    ),
     colnames = c(
       "State",
       "District",
@@ -108,12 +111,14 @@ combined_data |>
   ) |>
   formatPercentage("vote_pct", digits = 1) |>
   formatCurrency("budg_NIH_cuts_econ_loss", digits = 0) |>
-  formatRound("budg_NIH_cuts_job_loss", digits = 0) |> 
-  saveWidget("output/tables/nih_cut_district_impact_opportunities.html", selfcontained = TRUE)
+  formatRound("budg_NIH_cuts_job_loss", digits = 0) |>
+  saveWidget("output/tables/nih_cut_district_impact_opportunities.html",
+             selfcontained = TRUE)
 
 # 6 Create Interactive Table of District Impacts ----
-combined_data |> 
-datatable(
+combined_data |>
+  datatable(
+    caption = tags$caption(style = "caption-side: top; text-align: left; color: black; font-size: 150%;", "FY26 NIH Budget Cut Impacts by District"),
     colnames = c(
       "State",
       "District",
@@ -137,5 +142,6 @@ datatable(
   ) |>
   formatPercentage('vote_pct', digits = 1) |>
   formatCurrency("budg_NIH_cuts_econ_loss", digits = 0) |>
-  formatRound("budg_NIH_cuts_job_loss", digits = 0) |> 
-  saveWidget("output/tables/nih_cut_district_impact_interactive.html", selfcontained = TRUE)
+  formatRound("budg_NIH_cuts_job_loss", digits = 0) |>
+  saveWidget("output/tables/nih_cut_district_impact_interactive.html",
+             selfcontained = TRUE)
