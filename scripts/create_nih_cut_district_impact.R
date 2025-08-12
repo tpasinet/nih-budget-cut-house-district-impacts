@@ -57,8 +57,8 @@ nih_fy26_budget_cut_impacts <- "https://osf.io/download/2cgyh/" |>
          budg_NIH_cuts_econ_loss,
          budg_NIH_cuts_job_loss)
 
-# 4 Create Interactive Table of District Impacts ----
-us_house_election_results_2024 |>
+# 4 Combine Data ----
+combined_data <- us_house_election_results_2024 |>
   left_join(house_rep_phone, join_by(state, district)) |>
   left_join(nih_fy26_budget_cut_impacts, join_by(state, district)) |>
   select(
@@ -71,8 +71,49 @@ us_house_election_results_2024 |>
     vote_pct,
     budg_NIH_cuts_econ_loss,
     budg_NIH_cuts_job_loss
-  ) |>
+  )
+  
+# 5 Create Interactive Table of District Impacts ----
+combined_data |> 
+  filter(
+    party == "Republican" 
+    & vote_pct < 0.52
+  ) |> 
+  select(
+    state,
+    district,
+    representative,
+    phone,
+    vote_pct,
+    budg_NIH_cuts_econ_loss,
+    budg_NIH_cuts_job_loss
+  ) |> 
   datatable(
+    colnames = c(
+      "State",
+      "District",
+      "Representative",
+      "Phone",
+      "Vote %",
+      "Economic Loss",
+      "Job Loss"
+    ),
+    rownames = FALSE,
+    options = list(
+      dom = "t",
+      autoWidth = TRUE,
+      pageLength = 100,
+      order = list(list(5, "desc"))
+    )
+  ) |>
+  formatPercentage("vote_pct", digits = 1) |>
+  formatCurrency("budg_NIH_cuts_econ_loss", digits = 0) |>
+  formatRound("budg_NIH_cuts_job_loss", digits = 0) |> 
+  saveWidget("output/tables/nih_cut_district_impact_opportunities.html", selfcontained = TRUE)
+
+# 6 Create Interactive Table of District Impacts ----
+combined_data |> 
+datatable(
     colnames = c(
       "State",
       "District",
@@ -86,26 +127,15 @@ us_house_election_results_2024 |>
     ),
     rownames = FALSE,
     filter = "top",
-    extensions = 'Buttons',
+    extensions = "Buttons",
     options = list(
       pageLength = 100,
-      order = list(list(8, 'desc')),
-      searchCols = list(
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        list(search = "Republican"),
-        list(search = "0...0.54"),
-        NULL,
-        NULL
-      ),
-      dom = 'Bfrtip',
+      order = list(list(7, "desc")),
+      dom = "Bfrtip",
       buttons = c("copy", "csv", "excel")
     )
   ) |>
   formatPercentage('vote_pct', digits = 1) |>
   formatCurrency("budg_NIH_cuts_econ_loss", digits = 0) |>
   formatRound("budg_NIH_cuts_job_loss", digits = 0) |> 
-  saveWidget("nih_cut_district_impact.html", selfcontained = TRUE)
+  saveWidget("output/tables/nih_cut_district_impact_interactive.html", selfcontained = TRUE)
